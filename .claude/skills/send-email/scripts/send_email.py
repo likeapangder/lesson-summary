@@ -12,6 +12,9 @@ import os
 import json
 import subprocess
 import urllib.parse
+import re
+import tempfile
+import threading
 
 def detect_language(text):
     """Detect if text is primarily Chinese or English"""
@@ -149,46 +152,54 @@ def generate_report_email(content, to_recipient, language, subject=None):
     return email
 
 def generate_lesson_email(content, to_recipient, language, subject=None, teacher_name="Peggy"):
-    """Generate a teaching lesson summary email following Peggy's style guide
+    """Generate a teaching lesson summary email following Peggy's style guide using Claude API"""
 
-    Note: This function creates a prompt that should be processed by Claude Code's AI.
-    It outputs a request for the AI to generate the email, rather than generating it directly.
-    """
+    try:
+        import anthropic
+        import os
 
-    # Read the style guide
-    style_guide_path = Path(__file__).parent.parent.parent.parent / "templates" / "Master_EmailStyle_Guide.md"
+        # Check for Claude Code's local API endpoint first
+        base_url = os.environ.get('ANTHROPIC_BASE_URL')
+        auth_token = os.environ.get('ANTHROPIC_AUTH_TOKEN')
 
-    if style_guide_path.exists():
-        with open(style_guide_path, 'r', encoding='utf-8') as f:
-            style_guide = f.read()
-    else:
-        style_guide = "Use Peggy's teaching assistant style guide format."
+        if base_url and auth_token:
+            # Use Claude Code's local endpoint
+            client = anthropic.Anthropic(
+                api_key=auth_token,
+                base_url=base_url
+            )
+        else:
+            # Fall back to regular API key
+            api_key = os.environ.get('ANTHROPIC_API_KEY')
+            if not api_key:
+                print("⚠️  Warning: ANTHROPIC_API_KEY not found. Falling back to basic summary.")
+                return generate_basic_lesson_summary(content, to_recipient, teacher_name)
+            client = anthropic.Anthropic(api_key=api_key)
 
-    # Create the email template request
-    email = f"""📧 AI GENERATION REQUEST
-===========================================
+        student_name = to_recipient if to_recipient != 'recipient' else '同學'
 
-Please generate a lesson summary email following this style guide:
+        # Create prompt for Claude to analyze the lesson transcript
+        prompt = f"""You are helping to create a lesson summary email for an English teaching session. The teacher is {teacher_name} and the student is {student_name}.
 
-{style_guide}
+Analyze the following lesson transcript and create a summary email following this EXACT format:
 
----
+Hi {student_name},
 
-LESSON TRANSCRIPT:
-{content[:6000]}
+📚 今天學了什麼？
 
----
+1.[Chinese Topic Name] ([English Topic Name])：[Description of what was covered]
+✅ [Specific skill 1]：[Details and examples from the lesson]
+✅ [Specific skill 2]：[Details and examples from the lesson]
 
-REQUIREMENTS:
-1. Follow the "Narrative + Highlights" method (story with ✅ bullets)
-2. Use bilingual format (Chinese narrative, English terms in Traditional Chinese)
-3. Identify 2-3 main topics covered
-4. Extract specific phrases, vocabulary, or grammar points
-5. Include personalized encouragement based on progress
-6. Avoid robotic tone - use "我們練習了" not "學生學習了"
-7. Use the exact format from the template
-8. Teacher name: {teacher_name}
-9. End with:
+2.[Chinese Topic Name] ([English Topic Name])：[Description of what was covered]
+✅ [Specific skill 1]：[Details and examples from the lesson]
+✅ [Specific skill 2]：[Details and examples from the lesson]
+
+🌟 給你的小鼓勵
+[Personalized encouragement based on the student's actual performance in this lesson]
+
+🏡Homework: "[Homework title based on lesson content]"
+([Brief description of the homework])
 
 附件是今天課程PPT，有問題可以隨時找我
 有空也可以留一下課程評價喔～
@@ -196,11 +207,71 @@ REQUIREMENTS:
 Best regards,
 {teacher_name}
 
-===========================================
-Please generate the complete email above.
-"""
+IMPORTANT INSTRUCTIONS:
+1. Identify 2-3 main topics that were actually discussed in the lesson
+2. For each topic, extract specific vocabulary, phrases, or grammar points that were taught
+3. Include actual examples from the transcript (specific words, phrases, or corrections made)
+4. The encouragement should mention specific things the student did well in THIS lesson
+5. Create homework that relates to what was actually learned
+6. Use a friendly, encouraging tone matching Peggy's teaching style
+7. Mix Chinese and English naturally as shown in the format
 
-    return email
+Transcript:
+{content}
+
+Generate the lesson summary email now:"""
+
+        # Call Claude API
+        message = client.messages.create(
+            model="claude-sonnet-4.5",
+            max_tokens=2000,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        email_content = message.content[0].text
+        return email_content
+
+    except Exception as e:
+        print(f"⚠️  Error calling Claude API: {e}")
+        print("Falling back to basic summary...")
+        return generate_basic_lesson_summary(content, to_recipient, teacher_name)
+
+
+def generate_basic_lesson_summary(content, to_recipient, teacher_name="Peggy"):
+    """Generate a basic lesson summary when API is not available"""
+    student_name = to_recipient if to_recipient != 'recipient' else '同學'
+
+    # Extract some basic info from transcript
+    lines = [line.strip() for line in content.split('\n') if line.strip() and len(line.strip()) > 20]
+    preview = ' '.join(lines[:50])  # First 50 meaningful lines
+
+    email_content = f"""Hi {student_name},
+
+📚 今天學了什麼？
+
+1.英語會話練習 (English Conversation Practice)：今天我們進行了豐富的英語對話練習，涵蓋多個日常主題。
+✅ 口說流暢度：練習自然地表達想法和分享經驗
+✅ 詞彙運用：學習在對話中運用適當的詞彙和片語
+
+2.文法與表達技巧 (Grammar & Expression Skills)：針對對話中的表達進行調整和改進。
+✅ 句型練習：練習更自然和準確的英文句型
+✅ 發音修正：針對特定詞彙進行發音練習
+
+🌟 給你的小鼓勵
+今天的課程表現很好！你在對話中展現了積極的學習態度，也勇於嘗試用英文表達各種想法。繼續保持這樣的練習，你的英文會越來越進步～
+
+🏡Homework: "Review and Practice"
+(複習今天學過的內容，並嘗試在日常生活中使用)
+
+附件是今天課程PPT，有問題可以隨時找我
+有空也可以留一下課程評價喔～
+
+Best regards,
+{teacher_name}"""
+
+    return email_content
 
 def generate_email(input_file, email_type='summary', to_recipient='recipient',
                   subject=None, tone='professional', output_file=None, language=None, teacher_name='Peggy'):
@@ -271,39 +342,62 @@ def generate_email(input_file, email_type='summary', to_recipient='recipient',
 
     return str(output_file)
 
-def open_in_mail_app(email_content, subject):
-    """Open the generated email in Mail.app"""
+def open_in_mail_app(email_content, subject, recipient_email=""):
+    """Open the generated email in Mail.app with specific sender account"""
 
-    # Extract subject if it's in the email content
-    if email_content.startswith("Subject:"):
-        lines = email_content.split('\n')
-        subject_line = lines[0].replace("Subject:", "").strip()
-        body = '\n'.join(lines[2:])  # Skip subject and empty line
-    else:
-        subject_line = subject
-        body = email_content
+    # Use the provided subject (will be "AT Lesson with Peggy")
+    subject_line = "AT Lesson with Peggy"
 
-    # Remove AI generation request markers if present
-    if "AI GENERATION REQUEST" in body:
-        # This is a lesson type that needs AI generation
-        print("\n💡 Note: This email contains an AI generation request.")
-        print("   Please review and generate the final email content before sending.")
-
-    # URL encode the subject and body
-    subject_encoded = urllib.parse.quote(subject_line)
-    body_encoded = urllib.parse.quote(body)
-
-    # Create mailto URL
-    mailto_url = f"mailto:?subject={subject_encoded}&body={body_encoded}"
-
-    # Open in default mail app (works on macOS)
     try:
-        subprocess.run(['open', mailto_url], check=True)
+        # Create an .eml file which Mail.app can open directly
+        from email.mime.text import MIMEText
+        from email.header import Header
+
+        # Create email message
+        msg = MIMEText(email_content, 'plain', 'utf-8')
+        msg['Subject'] = Header(subject_line, 'utf-8')
+        msg['From'] = "peggylin.english@gmail.com"
+        msg['To'] = ""  # Will be filled by user
+
+        # Save as .eml file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.eml', delete=False, encoding='utf-8') as eml_file:
+            eml_file.write(msg.as_string())
+            eml_file_path = eml_file.name
+
+        # Open the .eml file with default mail app
+        subprocess.run(['open', eml_file_path], check=True)
+
         print("\n✅ Opening Mail app...")
-        print("📬 A new email draft has been created with the content.")
+        print("📧 Email file created with FROM: peggylin.english@gmail.com")
+        print("📬 Add recipient and send when ready!")
+
+        # Clean up after a delay (let Mail.app load the file first)
+        import threading
+        def cleanup():
+            import time
+            time.sleep(5)  # Wait 5 seconds before cleanup
+            try:
+                os.unlink(eml_file_path)
+            except:
+                pass
+
+        threading.Thread(target=cleanup, daemon=True).start()
+
     except Exception as e:
-        print(f"\n⚠️  Could not open Mail app automatically: {e}")
-        print("📋 Email content has been saved to file. You can copy it manually.")
+        print(f"\n⚠️  EML file creation failed: {e}")
+        print("📋 Falling back to standard mailto...")
+
+        # Fallback to standard mailto
+        subject_encoded = urllib.parse.quote(subject_line)
+        body_encoded = urllib.parse.quote(email_content)
+        mailto_url = f"mailto:?subject={subject_encoded}&body={body_encoded}"
+
+        try:
+            subprocess.run(['open', mailto_url], check=True)
+            print("📧 Email draft created - please verify sender is peggylin.english@gmail.com")
+        except Exception as e2:
+            print(f"⚠️  Could not open Mail app: {e2}")
+            print("📋 Email content has been saved to file. You can copy it manually.")
 
 def main():
     parser = argparse.ArgumentParser(
