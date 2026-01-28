@@ -24,4 +24,4 @@ requests==2.31.0
 
 # MCP and Whisper for transcription
 mcp>=1.0.0
-openai-whisper>=20231117
+faster-whisper>=1.0.0

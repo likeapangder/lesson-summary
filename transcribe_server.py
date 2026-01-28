@@ -6,7 +6,7 @@ This server provides transcription capabilities that Claude can call directly.
 """
 
 from mcp.server import FastMCP
-import whisper
+from faster_whisper import WhisperModel
 import os
 from datetime import datetime
 from pathlib import Path
@@ -14,10 +14,10 @@ from pathlib import Path
 # Initialize the MCP Server
 mcp = FastMCP("Lesson Transcriber")
 
-# Load the Whisper model once at startup
-# "base" is faster, "small" or "medium" is more accurate for Mandarin/English mix
-print("Loading Whisper model... please wait.")
-model = whisper.load_model("base")
+# Load the Faster Whisper model once at startup
+# Using "large-v3" for best accuracy with Chinese/English mix
+print("Loading Faster Whisper large model... please wait.")
+model = WhisperModel("large-v3", device="cpu", compute_type="int8")
 
 # Ensure transcripts directory exists
 TRANSCRIPTS_DIR = Path("transcripts")
@@ -43,10 +43,10 @@ def transcribe_lesson(file_path: str, student_name: str, lesson_topic: str = "")
         return f"Error: File not found at {file_path}"
 
     try:
-        # Transcribe the audio/video
+        # Transcribe the audio/video with auto language detection
         print(f"Transcribing {file_path}...")
-        result = model.transcribe(file_path)
-        transcript_text = result["text"]
+        segments, info = model.transcribe(file_path)  # Auto-detect language for mixed content
+        transcript_text = " ".join(segment.text for segment in segments)
 
         # Create filename following project convention: YYYYMMDD_StudentName_Topic.txt
         date_str = datetime.now().strftime("%Y%m%d")
@@ -90,8 +90,9 @@ def transcribe_video(file_path: str) -> str:
         return f"Error: File not found at {file_path}"
 
     try:
-        result = model.transcribe(file_path)
-        return result["text"]
+        result = model.transcribe(file_path)  # Auto-detect for mixed languages
+        segments, info = result
+        return " ".join(segment.text for segment in segments)
     except Exception as e:
         return f"Error during transcription: {str(e)}"
 
