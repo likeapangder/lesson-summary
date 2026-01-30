@@ -58,7 +58,7 @@ def main():
 
     parser.add_argument('video_file', help='Input MP4 video file')
     parser.add_argument('--model', choices=['tiny', 'base', 'small', 'medium', 'large', 'large-v3'],
-                       default='medium', help='Whisper model for transcription (default: medium)')
+                       default='base', help='Whisper model for transcription (default: base)')
     parser.add_argument('--to', dest='recipient', default='student',
                        help='Email recipient name (default: student)')
     parser.add_argument('--teacher', default='Peggy',

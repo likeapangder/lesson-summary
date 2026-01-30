@@ -15,9 +15,9 @@ from pathlib import Path
 mcp = FastMCP("Lesson Transcriber")
 
 # Load the Faster Whisper model once at startup
-# Using "large-v3" for best accuracy with Chinese/English mix
-print("Loading Faster Whisper large model... please wait.")
-model = WhisperModel("large-v3", device="cpu", compute_type="int8")
+# Using "medium" for best accuracy with Chinese/English mix
+print("Loading Faster Whisper medium model... please wait.")
+model = WhisperModel("medium", device="cpu", compute_type="int8")
 
 # Ensure transcripts directory exists
 TRANSCRIPTS_DIR = Path("transcripts")
