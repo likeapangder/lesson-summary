@@ -140,7 +140,7 @@ def main():
         print("\n🎙️ STEP 2/3: Transcribing audio to text...")
 
         # Use faster-whisper directly with Python
-        transcribe_cmd = f'''python -c "
+        transcribe_cmd = f'''python3 -c "
 from faster_whisper import WhisperModel
 import time
 
@@ -192,7 +192,7 @@ print(f'文件大小: {{len(transcript)}} 字符')
     # Get the path to the send_email script
     email_script = Path(__file__).parent.parent.parent / "send-email" / "scripts" / "send_email.py"
 
-    email_cmd = f'python "{email_script}" "{txt_file}" --type {args.type} --to "{args.recipient}"'
+    email_cmd = f'python3 "{email_script}" "{txt_file}" --type {args.type} --to "{args.recipient}"'
 
     if args.type == 'lesson':
         email_cmd += f' --teacher "{args.teacher}"'

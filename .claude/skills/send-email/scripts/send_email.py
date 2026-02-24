@@ -152,33 +152,24 @@ def generate_report_email(content, to_recipient, language, subject=None):
     return email
 
 def generate_lesson_email(content, to_recipient, language, subject=None, teacher_name="Peggy"):
-    """Generate a teaching lesson summary email following Peggy's style guide using Claude API"""
+    """Generate a teaching lesson summary email following Peggy's style guide using OpenAI-compatible API"""
 
     try:
-        import anthropic
         import os
+        from openai import OpenAI
 
-        # Check for Claude Code's local API endpoint first
-        base_url = os.environ.get('ANTHROPIC_BASE_URL')
-        auth_token = os.environ.get('ANTHROPIC_AUTH_TOKEN')
+        # Use Claude Code's local API endpoint
+        base_url = os.environ.get('ANTHROPIC_BASE_URL', 'http://localhost:4141')
+        api_key = os.environ.get('ANTHROPIC_AUTH_TOKEN', 'dummy-key')
 
-        if base_url and auth_token:
-            # Use Claude Code's local endpoint
-            client = anthropic.Anthropic(
-                api_key=auth_token,
-                base_url=base_url
-            )
-        else:
-            # Fall back to regular API key
-            api_key = os.environ.get('ANTHROPIC_API_KEY')
-            if not api_key:
-                print("⚠️  Warning: ANTHROPIC_API_KEY not found. Falling back to basic summary.")
-                return generate_basic_lesson_summary(content, to_recipient, teacher_name)
-            client = anthropic.Anthropic(api_key=api_key)
+        client = OpenAI(
+            base_url=base_url,
+            api_key=api_key
+        )
 
         student_name = to_recipient if to_recipient != 'recipient' else '同學'
 
-        # Create prompt for Claude to analyze the lesson transcript
+        # Create prompt for the model to analyze the lesson transcript
         prompt = f"""You are helping to create a lesson summary email for an English teaching session. The teacher is {teacher_name} and the student is {student_name}.
 
 Analyze the following lesson transcript and create a summary email following this EXACT format:
@@ -221,20 +212,21 @@ Transcript:
 
 Generate the lesson summary email now:"""
 
-        # Call Claude API
-        message = client.messages.create(
-            model="claude-sonnet-4.5",
-            max_tokens=2000,
+        # Call API with available model
+        response = client.chat.completions.create(
+            model="gemini-3.1-pro-preview",
             messages=[
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            temperature=0.7,
+            max_tokens=2000
         )
 
-        email_content = message.content[0].text
+        email_content = response.choices[0].message.content
         return email_content
 
     except Exception as e:
-        print(f"⚠️  Error calling Claude API: {e}")
+        print(f"⚠️  Error calling API: {e}")
         print("Falling back to basic summary...")
         return generate_basic_lesson_summary(content, to_recipient, teacher_name)
 
