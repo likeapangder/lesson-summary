@@ -214,7 +214,7 @@ Generate the lesson summary email now:"""
 
         # Call API with available model
         response = client.chat.completions.create(
-            model="gemini-3.1-pro-preview",
+            model="gemini-3-pro-preview",
             messages=[
                 {"role": "user", "content": prompt}
             ],
