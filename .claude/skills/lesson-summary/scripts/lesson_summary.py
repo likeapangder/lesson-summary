@@ -187,23 +187,24 @@ print(f'文件大小: {{len(transcript)}} 字符')
             print(f"🗑️ Cleaned up temporary audio file")
 
     # Step 3: Generate email
-    print("\n📧 STEP 3/3: Generating and sending email...")
+    print("\n📧 STEP 3/3: Generating email...")
 
-    # Get the path to the send_email script
-    email_script = Path(__file__).parent.parent.parent / "send-email" / "scripts" / "send_email.py"
+    # Output the transcript path for the lesson skill
+    print("\n" + "="*60)
+    print("📍 Generating email with AI analysis")
+    print("="*60)
+    print(f"\n📝 Transcript ready: {txt_file}")
+    print("\n🤖 Invoking Claude Code /lesson skill to:")
+    print("   • Analyze the lesson transcript")
+    print("   • Extract key topics, vocabulary, and corrections")
+    print("   • Generate personalized email following Peggy's style")
+    print("   • Open draft in Mail.app")
+    print("\n⏳ Processing...")
 
-    email_cmd = f'python3 "{email_script}" "{txt_file}" --type {args.type} --to "{args.recipient}"'
+    # Output a marker that the lesson-summary skill can detect
+    print(f"\nLESSON_TRANSCRIPT_PATH={txt_file}")
 
-    if args.type == 'lesson':
-        email_cmd += f' --teacher "{args.teacher}"'
-
-    success, email_time = run_command(email_cmd, "Generating email", timeout=120000)
-
-    if not success:
-        print("\n❌ Workflow failed at Step 3")
-        sys.exit(1)
-
-    step_times.append(("Generate email", email_time))
+    step_times.append(("Prepare for email", 0))
 
     # Calculate total time
     total_time = time.time() - total_start
@@ -224,8 +225,15 @@ print(f'文件大小: {{len(transcript)}} 字符')
     print(f"\n⏱️  Total: {total_time:.1f} seconds ({total_time/60:.1f} minutes)")
 
     print("\n" + "="*60)
-    print("💡 Email draft has been opened in Mail.app!")
-    print("   Review the content and send when ready")
+    print("✅ TRANSCRIPT READY - NOW GENERATING EMAIL...")
+    print("="*60)
+    print(f"\n📝 Transcript saved: {txt_file}")
+    print(f"\n🤖 Next step: Generate AI-analyzed email")
+    print(f"   Run: /lesson {txt_file}")
+    print(f"\n   This will:")
+    print(f"   • Analyze the lesson content with Claude Code")
+    print(f"   • Generate personalized email following Peggy's style")
+    print(f"   • Open the draft in Mail.app")
     print("="*60 + "\n")
 
 if __name__ == '__main__':

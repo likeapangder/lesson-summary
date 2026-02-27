@@ -24,6 +24,12 @@ Basic usage - process video and generate lesson email:
 python scripts/lesson_summary.py "$1" --to "${2:-student}" --teacher "${3:-Peggy}" --model ${4:-base}
 ```
 
+**Note:** After the transcript is generated, you should run:
+```bash
+/lesson <transcript_path>
+```
+This will analyze the transcript with Claude Code and generate the personalized email.
+
 ## Parameters
 
 - `$1` - Input MP4 video file path (required)
