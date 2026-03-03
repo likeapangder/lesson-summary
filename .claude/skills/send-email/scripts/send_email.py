@@ -259,6 +259,8 @@ Generate the lesson email following Peggy's EXACT style and structure:"""
     except Exception as e:
         print(f"⚠️  Error calling API: {e}")
         print(f"    Make sure you have set GOOGLE_API_KEY or ANTHROPIC_API_KEY in .env")
+        print("    You can also manually generate the email using the /lesson command:")
+        print(f"    /lesson {input_path}")
         print("    Falling back to basic summary...")
         return generate_basic_lesson_summary(content, to_recipient, teacher_name)
 
