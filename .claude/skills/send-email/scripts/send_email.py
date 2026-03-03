@@ -260,40 +260,12 @@ Generate the lesson email following Peggy's EXACT style and structure:"""
         print(f"⚠️  Error calling API: {e}")
         print(f"    Make sure you have set GOOGLE_API_KEY or ANTHROPIC_API_KEY in .env")
         print("    You can also manually generate the email using the /lesson command:")
-        print(f"    /lesson {input_path}")
-        print("    Falling back to basic summary...")
-        return generate_basic_lesson_summary(content, to_recipient, teacher_name)
+        print(f"    /lesson {input_file}")
+        # Return None to indicate failure, so the calling script knows.
+        return None
 
 
-def generate_basic_lesson_summary(content, to_recipient, teacher_name="Peggy"):
-    """Generate a basic lesson summary when API is not available"""
-    student_name = to_recipient if to_recipient != 'recipient' else '同學'
 
-    email_content = f"""Hi {student_name},
-
-📚 今天學了什麼？
-
-1. 英語會話練習 (English Conversation Practice)：今天我們進行了豐富的英語對話練習，涵蓋多個日常主題。
-✅ 口說流暢度：練習自然地表達想法和分享經驗
-✅ 詞彙運用：學習在對話中運用適當的詞彙和片語
-
-2. 文法與表達技巧 (Grammar & Expression Skills)：針對對話中的表達進行調整和改進。
-✅ 句型練習：練習更自然和準確的英文句型
-✅ 發音修正：針對特定詞彙進行發音練習
-
-🌟 給你的小鼓勵
-今天的課程表現很好！你在對話中展現了積極的學習態度，也勇於嘗試用英文表達各種想法。繼續保持這樣的練習，你的英文會越來越進步～
-
-🏡Homework: "Review and Practice"
-(複習今天學過的內容，並嘗試在日常生活中使用)
-
-附件是今天課程PPT，有問題可以隨時找我
-有空也可以留一下課程評價喔～
-
-Best regards,
-{teacher_name}"""
-
-    return email_content
 
 def generate_email(input_file, email_type='summary', to_recipient='recipient',
                   subject=None, tone='professional', output_file=None, language=None, teacher_name='Peggy'):
