@@ -15,7 +15,7 @@ CORS(app)
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'mp3', 'wav', 'm4a', 'ogg', 'flac'}
+ALLOWED_EXTENSIONS = {'mp3', 'wav', 'm4a', 'ogg', 'flac', 'mp4', 'mov', 'webm', 'mpeg', 'mpga'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Ensure upload directory exists
@@ -83,40 +83,67 @@ def process_lesson():
                 # Keep using original filepath
 
             # 1. Transcription with Groq
-            groq_client = groq.Groq(api_key=os.environ.get("GROQ_API_KEY"))
-            with open(filepath, "rb") as file_stream:
-                transcription = groq_client.audio.transcriptions.create(
-                    file=(filename, file_stream.read()),
-                    model="whisper-large-v3",
-                    response_format="text"
-                )
-
-            # 2. Summarization with Gemini
-            genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-            model = genai.GenerativeModel("gemini-1.5-flash")
-
-            # Read style guide
+            print("Starting Groq transcription...")
             try:
-                # Use absolute path to ensure it works regardless of CWD
-                current_dir = os.path.dirname(os.path.abspath(__file__))
-                style_guide_path = os.path.join(current_dir, '..', 'templates', 'Master_EmailStyle_Guide.md')
-                with open(style_guide_path, 'r') as f:
-                    style_guide = f.read()
-            except FileNotFoundError:
-                style_guide = "Write a professional summary email."
+                groq_client = groq.Groq(api_key=os.environ.get("GROQ_API_KEY"))
+                with open(filepath, "rb") as file_stream:
+                    transcription = groq_client.audio.transcriptions.create(
+                        file=(filename, file_stream.read()),
+                        model="whisper-large-v3-turbo",
+                        response_format="text"
+                    )
+                print("Groq transcription complete.")
+            except Exception as e:
+                print(f"Groq API Error: {e}")
+                raise e
 
-            prompt = f"""
-            You are a helpful teaching assistant. using the following style guide:
-            {style_guide}
+            # 2. Summarization with Groq
+            print("Starting Groq summarization...")
+            try:
+                # Read style guide
+                try:
+                    # Use absolute path to ensure it works regardless of CWD
+                    current_dir = os.path.dirname(os.path.abspath(__file__))
+                    style_guide_path = os.path.join(current_dir, '..', 'templates', 'Master_EmailStyle_Guide.md')
+                    with open(style_guide_path, 'r') as f:
+                        style_guide = f.read()
+                except FileNotFoundError:
+                    style_guide = "Write a professional summary email."
 
-            Please write a summary email for student: {student_name}
-            Student Email Address: {student_email}
-            Based on the following transcript:
-            {transcription}
-            """
+                response = groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": f"""You are Peggy's Executive Teaching Assistant.
+Your task is to write a lesson summary email for a student based on the provided transcript.
 
-            response = model.generate_content(prompt)
-            email_content = response.text
+CRITICAL INSTRUCTIONS:
+1. You MUST use the exact format defined in the Style Guide below.
+2. Do NOT just copy the examples in the style guide. Use the structure, but fill it with content from the TRANSCRIPT.
+3. The content must be specific to the lesson in the transcript (e.g., if they talked about "cooking", mention cooking, not "bad habits" from the example).
+4. Write in Traditional Chinese for the narrative parts, and English for the key terms/titles as specified.
+
+STYLE GUIDE:
+{style_guide}
+"""
+                        },
+                        {
+                            "role": "user",
+                            "content": f"Please write a summary email for student: {student_name}\nStudent Email Address: {student_email}\n\nBased on the following transcript:\n{transcription}"
+                        }
+                    ],
+                    temperature=0.5,
+                    max_tokens=2048,
+                    top_p=1,
+                    stop=None,
+                    stream=False,
+                )
+                email_content = response.choices[0].message.content
+                print("Groq summarization complete.")
+            except Exception as e:
+                print(f"Groq Summarization Error: {e}")
+                raise e
 
             # Clean up uploaded file
             os.remove(filepath)
