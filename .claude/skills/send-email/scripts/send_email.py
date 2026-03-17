@@ -338,67 +338,28 @@ def generate_email(input_file, email_type='summary', to_recipient='recipient',
     return str(output_file)
 
 def open_in_mail_app(email_content, subject, recipient_email=""):
-    """Open the generated email in Mail.app with specific sender account as an editable draft"""
+    """Open Gmail in Chrome with the teaching account (peggylin.english@gmail.com) as an editable draft"""
 
     # Use the provided subject (will be "AT Lesson with Peggy")
     subject_line = "AT Lesson with Peggy"
 
     try:
-        # Escape content for AppleScript (escape quotes and backslashes)
-        escaped_content = email_content.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
-        escaped_subject = subject_line.replace('\\', '\\\\').replace('"', '\\"')
+        # URL encode the subject and body
+        subject_encoded = urllib.parse.quote(subject_line)
+        body_encoded = urllib.parse.quote(email_content)
 
-        # Create AppleScript to make a new draft in Mail.app
-        applescript = f'''
-tell application "Mail"
-    set newMessage to make new outgoing message with properties {{subject:"{escaped_subject}", content:"{escaped_content}", visible:true}}
+        # Create Gmail compose URL with specific account
+        gmail_url = f"https://mail.google.com/mail/u/peggylin.english@gmail.com/?view=cm&fs=1&su={subject_encoded}&body={body_encoded}"
 
-    tell newMessage
-        make new to recipient at end of to recipients with properties {{address:"{recipient_email}"}}
-        set sender to "peggylin.english@gmail.com"
-    end tell
+        # Open in Chrome
+        subprocess.run(['open', '-a', 'Google Chrome', gmail_url], check=True)
 
-    activate
-end tell
-'''
-
-        # Execute AppleScript
-        result = subprocess.run(['osascript', '-e', applescript],
-                              capture_output=True, text=True, check=True)
-
-        print("\n✅ Opening Mail app with editable draft...")
+        print("\n✅ Opening Gmail in Chrome...")
         print("📧 Draft created with FROM: peggylin.english@gmail.com")
         print("📬 Add recipient and send when ready!")
 
-    except subprocess.CalledProcessError as e:
-        print(f"\n⚠️  AppleScript failed: {e.stderr}")
-        print("📋 Falling back to mailto URL...")
-
-        # Fallback to mailto URL (works but has length limits)
-        subject_encoded = urllib.parse.quote(subject_line)
-        body_encoded = urllib.parse.quote(email_content)
-        mailto_url = f"mailto:{recipient_email}?subject={subject_encoded}&body={body_encoded}"
-
-        if len(mailto_url) > 2000:
-            print("⚠️  Email content too long for mailto URL")
-            print("📋 Saving to file instead...")
-            # Save to a regular file
-            output_path = Path.home() / "Desktop" / "email_draft.txt"
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write(f"Subject: {subject_line}\n")
-                f.write(f"From: peggylin.english@gmail.com\n")
-                f.write(f"To: {recipient_email}\n\n")
-                f.write(email_content)
-            print(f"📄 Email saved to: {output_path}")
-            print("📋 Please copy and paste into Mail.app manually")
-        else:
-            try:
-                subprocess.run(['open', mailto_url], check=True)
-                print("📧 Email draft created via mailto")
-            except Exception as e2:
-                print(f"⚠️  Could not open Mail app: {e2}")
     except Exception as e:
-        print(f"\n⚠️  Error: {e}")
+        print(f"\n⚠️  Error opening Chrome: {e}")
         print("📋 Email content displayed above - please copy manually")
 
 def main():
