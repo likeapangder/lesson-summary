@@ -1,7 +1,0 @@
-Flask
-flask-cors
-python-dotenv
-groq
-anthropic
-werkzeug
-google-generativeai
