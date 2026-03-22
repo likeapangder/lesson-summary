@@ -42,11 +42,10 @@ The final step bridges the CLI and the desktop environment.
 
 1.  **Input**: Takes the generated email text.
 2.  **Script**: Executes a Python script (`send_email.py`).
-3.  **Applescript Integration**: Uses macOS Applescript (`osascript`) to:
-    *   Launch Mail.app.
-    *   Create a new outgoing message.
-    *   Set the Subject, Recipient, and Body.
-    *   Leave the message open as a draft for final review.
+3.  **Gmail Integration**: Generates a specialized Gmail composition URL:
+    *   Base: `https://mail.google.com/mail/?view=cm&fs=1`
+    *   Fills: `su` (Subject: "AT Lesson with Peggy"), `body` (Email Content), `to` (Recipient).
+    *   Action: Opens this URL in the default browser (Chrome/Safari), creating a drafted email ready for review and sending.
 
 ## File Structure & Responsibilities
 
@@ -63,7 +62,7 @@ The final step bridges the CLI and the desktop environment.
 ├── send-email/             # Delivery
 │   ├── SKILL.md            # Skill definition
 │   └── scripts/
-│       └── send_email.py     # Python + Applescript bridge
+│       └── send_email.py     # Python + Browser bridge
 └── transcribe-audio/       # Utility
     ├── SKILL.md            # Standalone transcription tool
     └── scripts/

@@ -19,45 +19,52 @@ This workflow is designed to be simple: **Video In → Email Out**.
     brew install ffmpeg
     ```
 
-### The 2-Step Workflow
+### The New Optimized Workflow
 
-**Step 1: Process the Video**
-Use the `/lesson-summary` skill to convert your lesson recording into a transcript. This runs locally using `ffmpeg` and `faster-whisper`.
+**One Command to Rule Them All: `/auto-lesson`**
+
+We now have a single orchestrated command that handles the entire pipeline: local transcription, agentic email generation, and draft creation.
 
 ```bash
-# Basic usage
-/lesson-summary <path_to_video.mp4> --to "Student Name"
-
-# Example
-/lesson-summary /Users/peggylin/Downloads/Lesson_0305.mp4 --to "Howard"
+/auto-lesson <path_to_video_or_audio> --to "Student Name"
 ```
 
-*What happens:*
-*   Extracts audio from the video (saves to `tmp/`).
-*   Transcribes audio to text using the local Whisper model.
-*   Saves the transcript to `tmp/<filename>.txt`.
-*   *(Optional)* Attempts to generate an email automatically if keys are configured, but **Step 2** is the recommended manual fallback for higher quality.
+**Example:**
+```bash
+/auto-lesson /Users/peggylin/Downloads/Siyu_0321.mp3 --to "Siyu"
+```
 
-**Step 2: Generate & Review Email**
-Use the `/lesson` skill to have Claude read the transcript and write a personalized email following your specific style guide.
+**What happens automatically:**
+1.  **Local Transcription**: Converts video/audio to text using `faster-whisper` (runs locally, $0 cost).
+2.  **Agentic Writing**: Passes the transcript to a specialized sub-agent (via `/lesson`) to write the email in a clean context.
+3.  **Delivery**: Opens the generated email draft directly in **Gmail** (via Chrome) with the subject **"AT Lesson with Peggy"**.
+
+---
+
+### Manual Workflow (Component Skills)
+
+If you need more control, you can run the individual steps manually:
+
+**Step 1: Process the Video**
+Use the `/lesson-summary` skill to convert your lesson recording into a transcript.
+
+```bash
+/lesson-summary <path_to_video.mp4> --model base
+```
+
+**Step 2: Generate Email**
+Use the `/lesson` skill to have Claude read the transcript and write a personalized email.
 
 ```bash
 /lesson tmp/<filename>.txt
 ```
 
-*What happens:*
-*   Claude reads the transcript and the `Master_EmailStyle_Guide.md`.
-*   It generates a structured, bilingual summary email (Traditional Chinese + English).
-*   You can review the output in the terminal.
+**Step 3: Send (Open in Gmail)**
+Once you have the email text, use the `send-email` script to open it in Gmail.
 
-**Step 3: Send (Open in Mail.app)**
-Once you are happy with the text from Step 2, use the `send-email` script to open it directly in macOS Mail.
-
-1.  Copy the email text to a file (e.g., `email_draft.txt`).
-2.  Run:
-    ```bash
-    python3 .claude/skills/send-email/scripts/send_email.py "email_draft.txt" --type manual --to "Student Name" --subject "Lesson Summary"
-    ```
+```bash
+python3 .claude/skills/send-email/scripts/send_email.py "tmp/email_draft.txt" --subject "AT Lesson with Peggy"
+```
 
 ---
 
@@ -65,26 +72,28 @@ Once you are happy with the text from Step 2, use the `send-email` script to ope
 
 The system is built on these core skills located in `.claude/skills/`:
 
+### `/auto-lesson`
+**The All-in-One Orchestrator.**
+*   Combines `/lesson-summary`, `/lesson`, and `/send-email` into a single seamless workflow.
+*   **Best for**: Daily usage.
+
 ### `/lesson-summary`
-**The Orchestrator.** Chains together video conversion and transcription.
-*   **Input**: Video file (MP4, MOV, etc.)
-*   **Output**: MP3 audio and TXT transcript.
-*   **Key Flags**: `--model` (tiny/base/small/medium), `--to` (student name).
+**The Transcriber.**
+*   **Input**: Video (MP4) or Audio (MP3/M4A).
+*   **Output**: Text transcript in `tmp/`.
+*   **Key Flags**: `--model` (tiny/base/small/medium).
 
 ### `/lesson`
-**The Writer.** A prompt-based skill that instructs Claude to act as your Teaching Assistant.
+**The Writer.**
+*   **Role**: Acts as your Bilingual Teaching Assistant.
 *   **Context**: Reads `templates/Master_EmailStyle_Guide.md` to ensure consistent tone and formatting.
 *   **Input**: Transcript text file.
 *   **Output**: Formatted email text.
 
-### `/transcribe-audio`
-**The Ear.** Standalone wrapper for `faster-whisper`.
-*   **Use directly if**: You already have an audio file and just want text.
-*   **Command**: `/transcribe-audio <file.mp3> --model base`
-
 ### `/send-email`
-**The Courier.** Python script to bridge the CLI and macOS Mail.
-*   **Function**: Creates a new draft in Mail.app with the subject, recipient, and body pre-filled.
+**The Courier.**
+*   **Function**: Generates a Gmail URL with the subject, recipient, and body pre-filled, then opens it in your default browser (Chrome).
+*   **Subject Default**: "AT Lesson with Peggy".
 
 ---
 
@@ -94,9 +103,10 @@ The system is built on these core skills located in `.claude/skills/`:
 lesson-summary-agent/
 ├── .claude/
 │   └── skills/              # The brain of the operation
+│       ├── auto-lesson/     # The main orchestrator skill
 │       ├── lesson-summary/  # Video -> Transcript workflow
 │       ├── lesson/          # Transcript -> Email prompt
-│       ├── send-email/      # Email -> Mail.app script
+│       ├── send-email/      # Email -> Gmail script
 │       └── transcribe-audio/# Audio -> Text script
 ├── templates/
 │   └── Master_EmailStyle_Guide.md  # The "Peggy Style" definition
@@ -113,4 +123,4 @@ lesson-summary-agent/
 
 *   **"ffmpeg not found"**: Run `brew install ffmpeg`.
 *   **"faster-whisper module not found"**: Run `pip install faster-whisper`.
-*   **Mail.app doesn't open**: Ensure you are running on macOS and have granted Terminal accessibility permissions if prompted.
+*   **Browser doesn't open**: Ensure your system has a default browser configured (preferably Chrome for best Gmail compatibility).

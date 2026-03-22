@@ -38,7 +38,7 @@ You are an expert orchestrator for lesson workflows.
 3.  **Step 3: Delivery**:
     *   Open the generated email in Gmail:
         ```bash
-        python3 .claude/skills/send-email/scripts/send_email.py "tmp/{{$1|basename}}_email.txt" --subject "Lesson Recap"
+        python3 .claude/skills/send-email/scripts/send_email.py "tmp/{{$1|basename}}_email.txt" --subject "AT Lesson with Peggy"
         ```
 
 4.  **Report**: Confirm completion.
