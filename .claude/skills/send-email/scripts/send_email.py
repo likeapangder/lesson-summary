@@ -25,13 +25,24 @@ def open_in_mail_app(email_content, subject):
         # Create Gmail compose URL with specific account
         gmail_url = f"https://mail.google.com/mail/u/peggylin.english@gmail.com/?view=cm&fs=1&su={subject_encoded}&body={body_encoded}"
 
-        # Open in Chrome
-        print(f"🔗 Opening URL: {gmail_url[:100]}...")
-        subprocess.run(['open', '-a', 'Google Chrome', gmail_url], check=True)
-
-        print("\n✅ Opening Gmail in Chrome...")
-        print("📧 Draft created with FROM: peggylin.english@gmail.com")
-        print("📬 Add recipient and send when ready!")
+        # Gmail compose URLs break when too long (browsers have ~8000 char limit,
+        # and Chinese/emoji chars encode to many bytes). If too long, copy body to
+        # clipboard and open Gmail with subject only so user can paste.
+        if len(gmail_url) > 8000:
+            short_url = f"https://mail.google.com/mail/u/peggylin.english@gmail.com/?view=cm&fs=1&su={subject_encoded}"
+            subprocess.run(['pbcopy'], input=email_content.encode('utf-8'), check=True)
+            print(f"🔗 Opening URL (body too long for URL, copied to clipboard instead)...")
+            subprocess.run(['open', '-a', 'Google Chrome', short_url], check=True)
+            print("\n✅ Opening Gmail in Chrome...")
+            print("📧 Draft created with FROM: peggylin.english@gmail.com")
+            print("📋 Email body copied to clipboard — paste it into the compose window (⌘V)")
+            print("📬 Add recipient and send when ready!")
+        else:
+            print(f"🔗 Opening URL: {gmail_url[:100]}...")
+            subprocess.run(['open', '-a', 'Google Chrome', gmail_url], check=True)
+            print("\n✅ Opening Gmail in Chrome...")
+            print("📧 Draft created with FROM: peggylin.english@gmail.com")
+            print("📬 Add recipient and send when ready!")
 
     except Exception as e:
         print(f"\n⚠️  Error opening Chrome: {e}")

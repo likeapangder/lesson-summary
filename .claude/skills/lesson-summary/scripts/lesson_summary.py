@@ -13,6 +13,29 @@ from pathlib import Path
 import time
 import tempfile
 import os
+import json
+from datetime import datetime, timezone
+
+def get_video_date(video_path):
+    """Extract recording date from video metadata using ffprobe. Falls back to today."""
+    try:
+        result = subprocess.run(
+            ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', str(video_path)],
+            capture_output=True, text=True, check=True
+        )
+        tags = json.loads(result.stdout).get('format', {}).get('tags', {})
+        creation_time = tags.get('creation_time')  # e.g. "2026-03-30T02:55:36.000000Z"
+        if creation_time:
+            dt = datetime.fromisoformat(creation_time.replace('Z', '+00:00'))
+            # Convert UTC to local time
+            dt_local = dt.astimezone()
+            return f"{dt_local.month}/{dt_local.day}"
+    except Exception:
+        pass
+    # Fallback: today's date
+    today = datetime.now()
+    return f"{today.month}/{today.day}"
+
 
 def run_command(cmd, description, timeout=600000):
     """Run a shell command and return success status"""
@@ -106,6 +129,10 @@ def main():
     total_start = time.time()
     step_times = []
 
+    # Extract lesson date from video metadata
+    lesson_date = get_video_date(video_path)
+    print(f"📅 Lesson date: {lesson_date}")
+
     # Create temporary MP3 file for processing
     with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_mp3:
         temp_mp3_path = Path(temp_mp3.name)
@@ -172,6 +199,10 @@ print(f'文件大小: {{len(transcript)}} 字符')
         if not txt_file.exists():
             print(f"❌ Error: Transcript file was not created: {txt_file}")
             sys.exit(1)
+
+        # Prepend lesson date as first line so the /lesson skill can use it
+        transcript_content = txt_file.read_text(encoding='utf-8')
+        txt_file.write_text(f"DATE: {lesson_date}\n\n{transcript_content}", encoding='utf-8')
 
     finally:
         # Clean up temporary MP3 file
