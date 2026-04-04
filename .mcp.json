@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "lesson-transcriber": {
+      "type": "stdio",
+      "command": "/Users/linhsinpei/lesson-summary-agent/venv/bin/python3",
+      "args": [
+        "/Users/linhsinpei/lesson-summary-agent/transcribe_server.py"
+      ]
+    }
+  }
+}

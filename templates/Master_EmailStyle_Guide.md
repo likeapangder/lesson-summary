@@ -19,13 +19,12 @@ For each topic, you must follow this 2-Part Structure:
 - Key Terms/English Phrases: English.
 
 # 📅 DATE
-The transcript file begins with a line "DATE: M/D" (e.g. "DATE: 3/30"). Use this date in the email header line, replacing 今天 with that date: "📚 3/30 學了什麼？". If no DATE line is found, use "今天".
+The transcript file begins with a line "DATE: MMDD" (e.g. "DATE: 0330"). Use this date in the email header line, replacing 今天 with that date: "📚 0330 學了什麼？". If no DATE line is found, use "今天".
 
 
 Hi {Student Name},
 
-📚 3/30 學了什麼？
-
+📚 0330 學了什麼？
 1.時態實戰與常用片語 (Tense Practice & Key Phrases): 課程開始我們以 "What did you do last week?" 為主軸，練習運用過去式流暢地回答問題。
 ✅ 常用片語精進: 學習了四個高頻片語及其用法：
 spent time with _____
@@ -55,8 +54,7 @@ Best regards,
 Peggy
 
 Hi {Student Name},
-
-📚 {M/D from DATE line} 學了什麼？
+📚 {MMDD from DATE line} 學了什麼？
 1. {Topic 1 Title in Chinese} ({Topic 1 Title in English}):
 {Narrative: Describe the activity. e.g., "課程開始我們以...為主軸" (We started the class focusing on...)}
 ✅ {Specific Phrase/Grammar 1: e.g., "spent time with ____"}

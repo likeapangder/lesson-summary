@@ -47,8 +47,7 @@ went to a/the _______
 Best regards,
 Peggy
 
-今天學了什麼？
-
+📚 今天學了什麼？
 1. {Topic 1 Title in Chinese} ({Topic 1 Title in English}):
    {Narrative: Describe the activity. e.g., "課程開始我們以...為主軸" (We started the class focusing on...)}
    ✅ {Specific Phrase/Grammar 1: e.g., "spent time with ____"}

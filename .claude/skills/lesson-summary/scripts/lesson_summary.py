@@ -29,12 +29,12 @@ def get_video_date(video_path):
             dt = datetime.fromisoformat(creation_time.replace('Z', '+00:00'))
             # Convert UTC to local time
             dt_local = dt.astimezone()
-            return f"{dt_local.month}/{dt_local.day}"
+            return f"{dt_local.month:02d}{dt_local.day:02d}"
     except Exception:
         pass
     # Fallback: today's date
     today = datetime.now()
-    return f"{today.month}/{today.day}"
+    return f"{today.month:02d}{today.day:02d}"
 
 
 def run_command(cmd, description, timeout=600000):
@@ -104,8 +104,12 @@ def main():
         print(f"❌ Error: Video file not found: {args.video_file}")
         sys.exit(1)
 
-    if not video_path.suffix.lower() in ['.mp4', '.mov', '.avi', '.mkv']:
-        print(f"⚠️  Warning: File may not be a video: {video_path.suffix}")
+    AUDIO_EXTENSIONS = {'.mp3', '.m4a', '.wav', '.aac', '.flac', '.ogg'}
+    VIDEO_EXTENSIONS = {'.mp4', '.mov', '.avi', '.mkv'}
+    is_audio = video_path.suffix.lower() in AUDIO_EXTENSIONS
+
+    if not is_audio and video_path.suffix.lower() not in VIDEO_EXTENSIONS:
+        print(f"⚠️  Warning: Unrecognized file format: {video_path.suffix}")
 
     # Set up tmp directory in project root
     project_root = Path(__file__).parent.parent.parent.parent.parent
@@ -123,6 +127,7 @@ def main():
     print("🎬 LESSON SUMMARY WORKFLOW")
     print("="*60)
     print(f"Input: {video_path.name} ({video_size:.1f} MB)")
+    print(f"Mode: {'Audio → MP3 → Text' if is_audio else 'Video → MP3 → Text'}")
     print(f"Model: {args.model}")
     print("="*60)
 
@@ -133,28 +138,35 @@ def main():
     lesson_date = get_video_date(video_path)
     print(f"📅 Lesson date: {lesson_date}")
 
-    # Create temporary MP3 file for processing
+    # Always convert to a temp MP3 for optimal Whisper performance.
+    # For video: extract audio. For audio: transcode to normalized MP3.
     with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_mp3:
         temp_mp3_path = Path(temp_mp3.name)
 
     try:
-        # Step 1: Convert MP4 to MP3 (temporary)
-        print("\n📹 STEP 1/2: Converting video to audio...")
-        convert_cmd = f'ffmpeg -i "{video_path}" -vn -ar 44100 -ac 2 -b:a 192k "{temp_mp3_path}" -y'
-        success, convert_time = run_command(convert_cmd, "Converting MP4 to MP3", timeout=600000)
+        if is_audio:
+            # Step 1 (audio input): Transcode to normalized MP3 for faster Whisper decoding
+            print("\n🎵 STEP 1/2: Normalizing audio to MP3...")
+            convert_cmd = f'ffmpeg -i "{video_path}" -ar 44100 -ac 2 -b:a 192k "{temp_mp3_path}" -y'
+            success, convert_time = run_command(convert_cmd, "Transcoding audio to MP3", timeout=600000)
+        else:
+            # Step 1 (video input): Extract audio track
+            print("\n📹 STEP 1/2: Converting video to audio...")
+            convert_cmd = f'ffmpeg -i "{video_path}" -vn -ar 44100 -ac 2 -b:a 192k "{temp_mp3_path}" -y'
+            success, convert_time = run_command(convert_cmd, "Converting MP4 to MP3", timeout=600000)
 
         if not success:
             print("\n❌ Workflow failed at Step 1")
             sys.exit(1)
 
-        step_times.append(("Convert to audio", convert_time))
+        step_times.append(("Convert to MP3", convert_time))
 
         # Check MP3 file
         if not temp_mp3_path.exists():
             print(f"❌ Error: Temporary MP3 file was not created")
             sys.exit(1)
 
-        print(f"✓ Audio extracted successfully")
+        print(f"✓ Audio ready")
 
         # Step 2: Transcribe audio to text
         print("\n🎙️ STEP 2/2: Transcribing audio to text...")

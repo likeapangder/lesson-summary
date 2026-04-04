@@ -36,9 +36,10 @@ You are an expert orchestrator for lesson workflows.
     *   The `/lesson` skill will output the email text. Capture it and save it to a file (e.g., `tmp/{{$1|basename}}_email.txt`).
 
 3.  **Step 3: Delivery**:
-    *   Open the generated email in Gmail:
+    *   Find the date from the first line of the transcript file (e.g., `DATE: 0401`).
+    *   Open the generated email in Gmail, including the date in the subject:
         ```bash
-        python3 .claude/skills/send-email/scripts/send_email.py "tmp/{{$1|basename}}_email.txt" --subject "AT Lesson with Peggy"
+        python3 .claude/skills/send-email/scripts/send_email.py "tmp/{{$1|basename}}_email.txt" --subject "<date_found> AT Lesson with Peggy"
         ```
 
 4.  **Report**: Confirm completion.
